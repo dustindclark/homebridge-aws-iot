@@ -87,9 +87,9 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
             clean: true,
             connectTimeout: 5000,
             transformWsUrl: () => {
-                this.log.info("Refreshing URL signature.");
+                this.log.info('Refreshing URL signature.');
                 return prepareWebSocketUrl(urlSignatureOptions);
-            }
+            },
         };
 
         this.mqttClient = mqtt.connect(presignedURL, mqttOptions);
