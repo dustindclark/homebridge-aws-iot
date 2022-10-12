@@ -1,5 +1,4 @@
 {
-  "private": true,
   "displayName": "Homebridge AWS IOT",
   "name": "homebridge-aws-iot",
   "version": "0.1.1-beta.0",
