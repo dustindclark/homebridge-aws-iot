@@ -138,7 +138,7 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
         const body = JSON.stringify({
             characteristics: characteristics,
         });
-        this.log.debug(`Sending request to HAP: ${body}`);
+        this.log.info(`Setting ${thing.name} state per MQTT message: ${JSON.stringify(characteristics)}`);
         this.hapClient.HAPcontrolByDeviceID(thing.bridgeId, body, (err) => {
             if (err) {
                 this.log.error('Failed to set device state: ', err);
@@ -227,7 +227,7 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
                     const capabilityMap = new Map([
                         [capability, event.value],
                     ]);
-                    this.log.debug(`Updating state for ${thing.name}. ${capability} transitioned to ${event.value}`);
+                    this.log.info(`Updating IoT shadow for ${thing.name}. ${capability} transitioned to ${event.value}`);
                     await updateThingShadow(this, id, capabilityMap);
                 } else {
                     this.log.error(`Can't handle event. Couldn't find thing for ID: ${id} in thing map.`);
