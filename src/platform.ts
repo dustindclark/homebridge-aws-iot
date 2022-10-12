@@ -15,7 +15,7 @@ import {addThingToGroup, createOrUpdateThings, createThingGroup, getThingId, upd
 import {IoTDataPlaneClient} from '@aws-sdk/client-iot-data-plane';
 import EventEmitter from 'events';
 import {Accessory} from 'hap-nodejs';
-import {MqttClient} from 'mqtt/types/lib/client';
+import {IClientOptions, MqttClient} from 'mqtt/types/lib/client';
 import * as mqtt from 'mqtt';
 
 type PluginConfig = {
@@ -80,12 +80,16 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
             password: this.co.awsIamSecret,
         };
         const presignedURL = prepareWebSocketUrl(urlSignatureOptions);
-        const mqttOptions = {
+        const mqttOptions: IClientOptions = {
             keepalive: 30,
-            reconnectPeriod: 0,
+            reconnectPeriod: 1000,
             clientId: `homebridge-${this.co.iotIdentifier}`,
             clean: true,
             connectTimeout: 5000,
+            transformWsUrl: () => {
+                this.log.info("Refreshing URL signature.");
+                return prepareWebSocketUrl(urlSignatureOptions);
+            }
         };
 
         this.mqttClient = mqtt.connect(presignedURL, mqttOptions);
