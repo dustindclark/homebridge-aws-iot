@@ -1,116 +1,238 @@
-import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
+import {
+    API,
+    DynamicPlatformPlugin,
+    Logger,
+    PlatformAccessory,
+    PlatformConfig,
+} from 'homebridge';
 
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import { ExamplePlatformAccessory } from './platformAccessory';
+import {HAPNodeJSClient} from 'hap-node-client';
+import {EventCharacteristic, HAPEvent, Homebridge, Thing} from './types';
+import {IoTClient} from '@aws-sdk/client-iot';
+import {encode} from './util/stringUtil';
+import {addThingToGroup, createOrUpdateThings, createThingGroup, getThingId, updateThingShadow} from './util/iotUtil';
+import {IoTDataPlaneClient} from '@aws-sdk/client-iot-data-plane';
+import EventEmitter from 'events';
+import {Accessory} from 'hap-nodejs';
+import {iot, mqtt} from 'aws-iot-device-sdk-v2';
+import {auth} from 'aws-crt';
+import {TextDecoder} from 'util';
+import {MqttClientConnection, QoS} from 'aws-crt/dist/native/mqtt';
+
+type PluginConfig = {
+    readonly pin: string;
+    readonly debug: boolean;
+    readonly awsRegion: string;
+    readonly awsIamAccessKey: string;
+    readonly awsIamSecret: string;
+    readonly iotIdentifier: string;
+    readonly iotEndpoint: string;
+    readonly deviceFilterList: ReadonlyArray<string>;
+} & PlatformConfig;
 
 /**
  * HomebridgePlatform
  * This class is the main constructor for your plugin, this is where you should
  * parse the user config and discover/register accessories with Homebridge.
  */
-export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
-  public readonly Service: typeof Service = this.api.hap.Service;
-  public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
-
-  // this is used to track restored cached accessories
-  public readonly accessories: PlatformAccessory[] = [];
-
-  constructor(
-    public readonly log: Logger,
-    public readonly config: PlatformConfig,
-    public readonly api: API,
-  ) {
-    this.log.debug('Finished initializing platform:', this.config.name);
-
-    // When this event is fired it means Homebridge has restored all cached accessories from disk.
-    // Dynamic Platform plugins should only register new accessories after this event was fired,
-    // in order to ensure they weren't added to homebridge already. This event can also be used
-    // to start discovery of new accessories.
-    this.api.on('didFinishLaunching', () => {
-      log.debug('Executed didFinishLaunching callback');
-      // run the method to discover / register your devices as accessories
-      this.discoverDevices();
-    });
-  }
-
-  /**
-   * This function is invoked when homebridge restores cached accessories from disk at startup.
-   * It should be used to setup event handlers for characteristics and update respective values.
-   */
-  configureAccessory(accessory: PlatformAccessory) {
-    this.log.info('Loading accessory from cache:', accessory.displayName);
-
-    // add the restored accessory to the accessories cache so we can track if it has already been registered
-    this.accessories.push(accessory);
-  }
-
-  /**
-   * This is an example method showing how to register discovered accessories.
-   * Accessories must only be registered once, previously created accessories
-   * must not be registered again to prevent "duplicate UUID" errors.
-   */
-  discoverDevices() {
-
-    // EXAMPLE ONLY
-    // A real plugin you would discover accessories from the local network, cloud services
-    // or a user-defined array in the platform config.
-    const exampleDevices = [
-      {
-        exampleUniqueId: 'ABCD',
-        exampleDisplayName: 'Bedroom',
-      },
-      {
-        exampleUniqueId: 'EFGH',
-        exampleDisplayName: 'Kitchen',
-      },
-    ];
-
-    // loop over the discovered devices and register each one if it has not already been registered
-    for (const device of exampleDevices) {
-
-      // generate a unique id for the accessory this should be generated from
-      // something globally unique, but constant, for example, the device serial
-      // number or MAC address
-      const uuid = this.api.hap.uuid.generate(device.exampleUniqueId);
-
-      // see if an accessory with the same uuid has already been registered and restored from
-      // the cached devices we stored in the `configureAccessory` method above
-      const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
-
-      if (existingAccessory) {
-        // the accessory already exists
-        this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        // existingAccessory.context.device = device;
-        // this.api.updatePlatformAccessories([existingAccessory]);
-
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new ExamplePlatformAccessory(this, existingAccessory);
-
-        // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, eg.:
-        // remove platform accessories when no longer present
-        // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-        // this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
-      } else {
-        // the accessory does not yet exist, so we need to create it
-        this.log.info('Adding new accessory:', device.exampleDisplayName);
-
-        // create a new accessory
-        const accessory = new this.api.platformAccessory(device.exampleDisplayName, uuid);
-
-        // store a copy of the device object in the `accessory.context`
-        // the `context` property can be used to store any data about the accessory you may need
-        accessory.context.device = device;
-
-        // create the accessory handler for the newly create accessory
-        // this is imported from `platformAccessory.ts`
-        new ExamplePlatformAccessory(this, accessory);
-
-        // link the accessory to your platform
-        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-      }
+export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
+    configureAccessory(accessory: PlatformAccessory): void {
+        this.log.debug(`Configuring accessory ${accessory}. Shouldn't be here.`);
     }
-  }
+
+    public readonly co: PluginConfig;
+    public readonly iotClient: IoTClient;
+    public readonly iotDataplaneClient: IoTDataPlaneClient;
+    public readonly eventBus: EventEmitter;
+    private readonly hapClient: HAPNodeJSClient;
+    private readonly thingMap: Map<string, Thing>;
+    public readonly decoder: TextDecoder;
+    public readonly mqttClient: MqttClientConnection;
+    public readonly deviceFilterList: Set<string>;
+
+    constructor(
+        public readonly log: Logger,
+        public readonly config: PlatformConfig,
+        public readonly api: API,
+    ) {
+        this.log.debug('Finished initializing platform:', this.config.name);
+
+        this.eventBus = new EventEmitter();
+        this.thingMap = new Map();
+        this.co = config as PluginConfig;
+        this.deviceFilterList = new Set(this.co.deviceFilterList.map(it => it.toLowerCase()));
+        this.decoder = new TextDecoder('utf8');
+        this.iotClient = new IoTClient({
+            region: this.co.awsRegion,
+            credentials: {
+                accessKeyId: this.co.awsIamAccessKey,
+                secretAccessKey: this.co.awsIamSecret,
+            },
+        });
+        this.iotDataplaneClient = new IoTDataPlaneClient({
+            region: this.co.awsRegion,
+            credentials: {
+                accessKeyId: this.co.awsIamAccessKey,
+                secretAccessKey: this.co.awsIamSecret,
+            },
+        });
+        const mqttConfigBuilder = iot.AwsIotMqttConnectionConfigBuilder.new_with_websockets({
+            //new_cognito
+            credentials_provider: auth.AwsCredentialsProvider.newStatic(this.co.awsIamAccessKey, this.co.awsIamSecret),
+            region: this.co.awsRegion,
+        });
+        mqttConfigBuilder.with_clean_session(false);
+        mqttConfigBuilder.with_client_id(`homebridge-${this.co.iotIdentifier}`);
+        mqttConfigBuilder.with_endpoint(this.co.iotEndpoint);
+        const mqttClientBuilder = new mqtt.MqttClient();
+        this.mqttClient = mqttClientBuilder.new_connection(mqttConfigBuilder.build());
+        this.mqttClient.connect().then(() => {
+            this.log.debug('MQTT client connected successfully.');
+        }).catch((err) => {
+            this.log.error('Failed to connect to MQTT client.', err);
+        });
+
+        // https://github.com/NorthernMan54/Hap-Node-Client/blob/master/docs/API.md#properties
+        const hapClientOptions = {
+            debug: this.co.debug,
+            pin: this.co.pin,
+            eventBus: this.eventBus,
+            refresh: 1440, //1 day
+        };
+        try {
+            this.hapClient = new HAPNodeJSClient(hapClientOptions);
+            this.hapClient.on('Ready', this.handleHomebridgeDiscovery.bind(this));
+            this.hapClient.on('hapEvent', this.hapEvent.bind(this));
+        } catch (error) {
+            log.error('Caught error initializing hap client', error);
+        }
+
+        // When this event is fired it means Homebridge has restored all cached accessories from disk.
+        // Dynamic Platform plugins should only register new accessories after this event was fired,
+        // in order to ensure they weren't added to homebridge already. This event can also be used
+        // to start discovery of new accessories.
+        this.api.on('didFinishLaunching', async () => {
+            log.debug('Executed didFinishLaunching callback');
+
+        });
+    }
+
+    async handleMqttMessage(topic: string, payload: ArrayBuffer): Promise<void> {
+        const payloadString = this.decoder.decode(payload);
+        const thingId = topic.split('/')[2];
+        this.log.debug(`Received MQTT message for thing: ${thingId}. Payload: ${payloadString}`);
+        const json = JSON.parse(payloadString);
+        const thing = this.thingMap.get(thingId) as Thing;
+        const characteristics = Array.from(thing.capabilitySourceMap, ([key, value]) => {
+            if (Object.prototype.hasOwnProperty.call(json.state, value)) {
+                return {
+                    aid: thing.accessoryId,
+                    iid: key,
+                    value: json.state[value],
+                };
+            }
+            return null;
+        }).filter(it => it);
+        const body = JSON.stringify({
+            characteristics: characteristics,
+        });
+        this.log.debug(`Sending request to HAP: ${body}`);
+        this.hapClient.HAPcontrolByDeviceID(thing.bridgeId, body, (err) => {
+            if (err) {
+                this.log.error('Failed to set device state: ', err);
+            } else {
+                this.log.debug('Successfully set device state.');
+            }
+        });
+
+    }
+
+    async handleHomebridgeDiscovery(homebridges: ReadonlyArray<any>) {
+        try {
+            this.thingMap.clear();
+            this.log.debug(`Discovered ${homebridges.length} homebridges. Sending to IoT...`);
+            let count = 0;
+            const groupName = encode(this.co.iotIdentifier);
+            await createThingGroup(this, groupName);
+
+            for (const homebridge of homebridges) {
+                const characteristicsForEvents: Array<EventCharacteristic> = [];
+                const h = homebridge as Homebridge;
+                for (const accessory of h.accessories.accessories) {
+                    const things = await createOrUpdateThings(this, h, accessory);
+                    for (const thing of things) {
+                        this.thingMap.set(thing.id, thing);
+                        await addThingToGroup(this, thing.id, groupName);
+                        characteristicsForEvents.push(...this.getCharacteristicsForEvents(accessory));
+                        const topic = `$aws/things/${thing.id}/shadow/update/delta`;
+                        this.log.debug(`Subscribing to topic: ${topic}`);
+                        await this.mqttClient.subscribe(topic,
+                            QoS.AtMostOnce, this.handleMqttMessage.bind(this));
+                        this.log.debug(`Finished subscribing to topic: ${topic}`);
+                        count++;
+                    }
+                }
+                this.registerForEvents(homebridge, characteristicsForEvents);
+            }
+            this.log.info(`Discovery completed successfully. ${count} devices sent to IOT.`);
+        } catch (error) {
+            this.log.error('Failed to discover all the things', error);
+        }
+    }
+
+    getCharacteristicsForEvents(accessory: Accessory): ReadonlyArray<EventCharacteristic> {
+        const characteristicsForEvents: Array<EventCharacteristic> = [];
+        for (const service of accessory.services) {
+            for (const characteristic of service.characteristics) {
+                if (accessory.aid && characteristic.iid) {
+                    characteristicsForEvents.push({
+                        aid: accessory.aid,
+                        iid: characteristic.iid,
+                        ev: true,
+                    });
+                }
+            }
+        }
+        return characteristicsForEvents;
+    }
+
+    registerForEvents(homebridge: Homebridge, characteristics: ReadonlyArray<EventCharacteristic>) {
+        this.hapClient.HAPeventByDeviceID(homebridge.deviceID, JSON.stringify({
+            characteristics: characteristics,
+        }), (error) => {
+            if (error) {
+                this.log.debug(`Failed to register for events for bridge ${homebridge.deviceID}: `,
+                    error.message);
+            } else {
+                this.log.debug(`Registered for events successfully for bridge: ${homebridge.deviceID}`);
+                // TODO: status has characteristics. Push?
+            }
+        });
+    }
+
+    async hapEvent(events: Array<HAPEvent>) {
+        try {
+            this.log.debug(`hapEvents: ${this.json(events)}`);
+            for (const event of events) {
+                const id = getThingId(this, event.deviceID, event.aid);
+                const thing = this.thingMap.get(id);
+                if (thing) {
+                    const capability = thing.capabilitySourceMap.get(event.iid) as string;
+                    const capabilityMap = new Map([
+                        [capability, event.value],
+                    ]);
+                    this.log.debug(`Updating state for ${thing.name}. ${capability} transitioned to ${event.value}`);
+                    await updateThingShadow(this, id, capabilityMap);
+                } else {
+                    this.log.error(`Can't handle event. Couldn't find thing for ID: ${id} in thing map.`);
+                }
+            }
+        } catch (err) {
+            this.log.error('Caught error handling HAP event.', err);
+        }
+    }
+
+    json(data) {
+        return JSON.stringify(data, null, 2);
+    }
 }

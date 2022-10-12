@@ -1,15 +1,61 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "HomebridgeAwsIot",
   "pluginType": "platform",
   "singular": true,
   "schema": {
     "type": "object",
     "properties": {
-      "name": {
-        "title": "Name",
+      "debug": {
+        "title": "Enable Debug",
+        "description": "Enables debug logging on console.",
+        "type": "boolean",
+        "required": true,
+        "default": false
+      },
+      "pin": {
+        "title": "PIN",
+        "description": "Configured PIN for Homebridge devices. This enables fetching/controlling Homebridge accessories.",
+        "type": "string",
+        "required": true
+      },
+      "awsRegion": {
+        "title": "AWS Region",
+        "description": "AWS Region where IoT will be synced.",
         "type": "string",
         "required": true,
-        "default": "Example Dynamic Platform"
+        "default": "us-east-1"
+      },
+      "awsIamAccessKey": {
+        "title": "AWS IAM Access Key",
+        "type": "string",
+        "description": "IAM access key for user. Create from AWS console.",
+        "required": true
+      },
+      "awsIamSecret": {
+        "title": "AWS IAM Secret",
+        "type": "string",
+        "description": "IAM secret for user. Create from AWS console.",
+        "required": true
+      },
+      "iotIdentifier": {
+        "title": "AWS IOT Identifier",
+        "type": "string",
+        "description": "IOT identifier. Thing names (and thus MQTT topics) will be prefixed with this key. If using with AWS Cognito, this should be the Cognito user name.",
+        "required": true
+      },
+      "iotEndpoint": {
+        "title": "AWS IOT Endpoint",
+        "type": "string",
+        "description": "IOT MQTT endpoint. Find on AWS IoT Console.",
+        "required": true
+      },
+      "deviceFilterList": {
+        "title": "Device Filter List",
+        "type": "array",
+        "description": "Specify the names of devices to be enabled",
+        "items": {
+          "type": "string"
+        }
       }
     }
   }

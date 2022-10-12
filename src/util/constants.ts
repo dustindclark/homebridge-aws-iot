@@ -1,0 +1,151 @@
+export const DEVICE_TYPES: Map<string, string> = new Map([
+    ["00000113", "SPEAKER"],
+    ["000000D8", "TV"],
+    ["00000098", "TV"],
+    ["00000043", "LIGHT"],
+    ["0000008C", "INTERIOR_BLIND"],
+    ["000000D0", "OTHER"], //Valve, Sprinkler
+    ["00000041", "GARAGE_DOOR"],
+    ["00000045", "SMARTLOCK"],
+    ["00000047", "SMARTPLUG"],
+    ["00000049", "SWITCH"],
+    ["000000BB", "SWITCH"], // Air purifier
+    ["000000BD", "SWITCH"], // Humidifier Dehumidifier
+    ["00000049", "SWITCH"],
+    ["00000040", "FAN"],
+    ["000000B7", "FAN"],
+    ["0000008A", "FAN"],
+    ["000000B7", "TEMPERATURE_SENSOR"],
+    ["00000080", "CONTACT_SENSOR"],
+    ["00000086", "OTHER"], //Occupancy
+    ["00000121", "DOORBELL"],
+    ["00000085", "MOTION_SENSOR"],
+    ["0000004A", "THERMOSTAT"],
+    ["000000BC", "THERMOSTAT"],
+    ["0000007E", "SECURITY_PANEL"]
+]);
+
+type ServiceUuid = {
+    readonly uuid: string,
+    readonly name: string,
+}
+
+export const SERVICE_UUIDS: ReadonlyArray<ServiceUuid> = [
+    {name: "Accessory Information", uuid: "0000003E-0000-1000-8000-0026BB765291"},
+    {name: "Air Quality Sensor", uuid: "0000008D-0000-1000-8000-0026BB765291"},
+    {name: "Battery Service", uuid: "00000096-0000-1000-8000-0026BB765291"},
+    {name: "Bridging State", uuid: "00000062-0000-1000-8000-0026BB765291"},
+    {name: "Carbon Dioxide Sensor", uuid: "00000097-0000-1000-8000-0026BB765291"},
+    {name: "Carbon Monoxide Sensor", uuid: "0000007F-0000-1000-8000-0026BB765291"},
+    {name: "Contact Sensor", uuid: "00000080-0000-1000-8000-0026BB765291"},
+    {name: "Door", uuid: "00000081-0000-1000-8000-0026BB765291"},
+    {name: "Fan", uuid: "00000040-0000-1000-8000-0026BB765291"},
+    {name: "Garage Door Opener", uuid: "00000041-0000-1000-8000-0026BB765291"},
+    {name: "Leak Sensor", uuid: "00000083-0000-1000-8000-0026BB765291"},
+    {name: "Light Sensor", uuid: "00000084-0000-1000-8000-0026BB765291"},
+    {name: "Lightbulb", uuid: "00000043-0000-1000-8000-0026BB765291"},
+    {name: "Lock Management", uuid: "00000044-0000-1000-8000-0026BB765291"},
+    {name: "Lock Mechanism", uuid: "00000045-0000-1000-8000-0026BB765291"},
+    {name: "Motion Sensor", uuid: "00000085-0000-1000-8000-0026BB765291"},
+    {name: "Occupancy Sensor", uuid: "00000086-0000-1000-8000-0026BB765291"},
+    {name: "Outlet", uuid: "00000047-0000-1000-8000-0026BB765291"},
+    {name: "Security System", uuid: "0000007E-0000-1000-8000-0026BB765291"},
+    {name: "Smoke Sensor", uuid: "00000087-0000-1000-8000-0026BB765291"},
+    {name: "Stateful Programmable Switch", uuid: "00000088-0000-1000-8000-0026BB765291"},
+    {name: "Stateless Programmable Switch", uuid: "00000089-0000-1000-8000-0026BB765291"},
+    {name: "Switch", uuid: "00000049-0000-1000-8000-0026BB765291"},
+    {name: "Temperature Sensor", uuid: "0000008A-0000-1000-8000-0026BB765291"},
+    {name: "Thermostat", uuid: "0000004A-0000-1000-8000-0026BB765291"},
+    {name: "Window", uuid: "0000008B-0000-1000-8000-0026BB765291"},
+    {name: "Window Covering", uuid: "0000008C-0000-1000-8000-0026BB765291"},
+]
+
+type CharacteristicUuid = {
+    readonly uuid: string,
+    readonly name: string,
+    readonly isCapability: boolean,
+}
+export const CHARACTERISTIC_UUIDS: ReadonlyArray<CharacteristicUuid> = [
+    {name: "Administrator Only Access", uuid: "00000001-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Air Particulate Density", uuid: "00000064-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Air Particulate Size", uuid: "00000065-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Air Quality", uuid: "00000095-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Audio Feedback", uuid: "00000005-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Battery Level", uuid: "00000068-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Brightness", uuid: "00000008-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Carbon Dioxide Detected", uuid: "00000092-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Carbon Dioxide Level", uuid: "00000093-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Carbon Dioxide Peak Level", uuid: "00000094-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Carbon Monoxide Detected", uuid: "00000069-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Carbon Monoxide Level", uuid: "00000090-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Carbon Monoxide Peak Level", uuid: "00000091-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Charging State", uuid: "0000008F-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Contact Sensor State", uuid: "0000006A-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Cooling Threshold Temperature", uuid: "0000000D-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Current Ambient Light Level", uuid: "0000006B-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Current Door State", uuid: "0000000E-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Current Heating Cooling State", uuid: "0000000F-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Current Horizontal Tilt Angle", uuid: "0000006C-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Current Position", uuid: "0000006D-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Current Relative Humidity", uuid: "00000010-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Current Temperature", uuid: "00000011-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Current Vertical Tilt Angle", uuid: "0000006E-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Firmware Revision", uuid: "00000052-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Hardware Revision", uuid: "00000053-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Heating Threshold Temperature", uuid: "00000012-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Hold Position", uuid: "0000006F-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Hue", uuid: "00000013-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Identify", uuid: "00000014-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Leak Detected", uuid: "00000070-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Lock Control Point", uuid: "00000019-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Lock Current State", uuid: "0000001D-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Lock Last Known Action", uuid: "0000001C-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Lock Management Auto Security Timeout", uuid: "0000001A-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Lock Target State", uuid: "0000001E-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Logs", uuid: "0000001F-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Manufacturer", uuid: "00000020-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Model", uuid: "00000021-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Motion Detected", uuid: "00000022-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Name", uuid: "00000023-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Obstruction Detected", uuid: "00000024-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Occupancy Detected", uuid: "00000071-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "On", uuid: "00000025-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Outlet In Use", uuid: "00000026-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Position State", uuid: "00000072-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Programmable Switch Event", uuid: "00000073-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Programmable Switch Output State", uuid: "00000074-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Reachable", uuid: "00000063-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Rotation Direction", uuid: "00000028-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Rotation Speed", uuid: "00000029-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Saturation", uuid: "0000002F-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Security System Alarm Type", uuid: "0000008E-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Security System Current State", uuid: "00000066-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Security System Target State", uuid: "00000067-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Serial Number", uuid: "00000030-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Smoke Detected", uuid: "00000076-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Software Revision", uuid: "00000054-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Status Active", uuid: "00000075-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Status Fault", uuid: "00000077-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Status Jammed", uuid: "00000078-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Status Low Battery", uuid: "00000079-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Status Tampered", uuid: "0000007A-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Target Door State", uuid: "00000032-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Target Heating Cooling State", uuid: "00000033-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Target Horizontal Tilt Angle", uuid: "0000007B-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Target Position", uuid: "0000007C-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Target Relative Humidity", uuid: "00000034-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Target Temperature", uuid: "00000035-0000-1000-8000-0026BB765291", isCapability: true},
+    {name: "Target Vertical Tilt Angle", uuid: "0000007D-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Temperature Display Units", uuid: "00000036-0000-1000-8000-0026BB765291", isCapability: false},
+    {name: "Version", uuid: "00000037-0000-1000-8000-0026BB765291", isCapability: false}
+]
+
+export const CHARACTERISTIC_CAPABILITY_UUIDS: Set<string> = new Set(
+    CHARACTERISTIC_UUIDS.filter(it => it.isCapability)
+        .map(it => it.uuid)
+);
+
+export const CHARACTERISTIC_NAMES: Map<string, string> = CHARACTERISTIC_UUIDS.reduce(function (map, it) {
+    map.set(it.uuid, it.name);
+    return map;
+}, new Map());
