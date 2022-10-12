@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge AWS IOT",
   "name": "homebridge-aws-iot",
-  "version": "0.1.3-beta.0",
+  "version": "0.1.4-beta.0",
   "description": "Synchronizes Homebridge Devices with AWS IOT device shadows, which enables Alexa and other platforms.",
   "license": "Apache-2.0",
   "repository": {
