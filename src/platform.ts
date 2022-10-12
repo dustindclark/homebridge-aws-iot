@@ -10,14 +10,13 @@ import {HAPNodeJSClient} from 'hap-node-client';
 import {EventCharacteristic, HAPEvent, Homebridge, Thing} from './types';
 import {IoTClient} from '@aws-sdk/client-iot';
 import {encode} from './util/stringUtil';
+import {prepareWebSocketUrl} from './util/awsUtil';
 import {addThingToGroup, createOrUpdateThings, createThingGroup, getThingId, updateThingShadow} from './util/iotUtil';
 import {IoTDataPlaneClient} from '@aws-sdk/client-iot-data-plane';
 import EventEmitter from 'events';
 import {Accessory} from 'hap-nodejs';
-import {iot, mqtt} from 'aws-iot-device-sdk-v2';
-import {auth} from 'aws-crt';
-import {TextDecoder} from 'util';
-import {MqttClientConnection, QoS} from 'aws-crt/dist/native/mqtt';
+import {MqttClient} from 'mqtt/types/lib/client';
+import * as mqtt from 'mqtt';
 
 type PluginConfig = {
     readonly pin: string;
@@ -46,8 +45,7 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
     public readonly eventBus: EventEmitter;
     private readonly hapClient: HAPNodeJSClient;
     private readonly thingMap: Map<string, Thing>;
-    public readonly decoder: TextDecoder;
-    public readonly mqttClient: MqttClientConnection;
+    public readonly mqttClient: MqttClient;
     public readonly deviceFilterList: Set<string>;
 
     constructor(
@@ -61,7 +59,6 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
         this.thingMap = new Map();
         this.co = config as PluginConfig;
         this.deviceFilterList = new Set(this.co.deviceFilterList.map(it => it.toLowerCase()));
-        this.decoder = new TextDecoder('utf8');
         this.iotClient = new IoTClient({
             region: this.co.awsRegion,
             credentials: {
@@ -76,21 +73,27 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
                 secretAccessKey: this.co.awsIamSecret,
             },
         });
-        const mqttConfigBuilder = iot.AwsIotMqttConnectionConfigBuilder.new_with_websockets({
-            //new_cognito
-            credentials_provider: auth.AwsCredentialsProvider.newStatic(this.co.awsIamAccessKey, this.co.awsIamSecret),
+        const urlSignatureOptions = {
+            host: this.co.iotEndpoint,
             region: this.co.awsRegion,
+            username: this.co.awsIamAccessKey,
+            password: this.co.awsIamSecret,
+        };
+        const presignedURL = prepareWebSocketUrl(urlSignatureOptions);
+        const mqttOptions = {
+            keepalive: 30,
+            reconnectPeriod: 0,
+            clientId: `homebridge-${this.co.iotIdentifier}`,
+            clean: true,
+            connectTimeout: 5000,
+        };
+
+        this.mqttClient = mqtt.connect(presignedURL, mqttOptions);
+        this.mqttClient.on('connect', () => {
+            this.log.debug('MQTT connected successfully.');
         });
-        mqttConfigBuilder.with_clean_session(false);
-        mqttConfigBuilder.with_client_id(`homebridge-${this.co.iotIdentifier}`);
-        mqttConfigBuilder.with_endpoint(this.co.iotEndpoint);
-        const mqttClientBuilder = new mqtt.MqttClient();
-        this.mqttClient = mqttClientBuilder.new_connection(mqttConfigBuilder.build());
-        this.mqttClient.connect().then(() => {
-            this.log.debug('MQTT client connected successfully.');
-        }).catch((err) => {
-            this.log.error('Failed to connect to MQTT client.', err);
-        });
+
+        this.mqttClient.on('message', this.handleMqttMessage.bind(this));
 
         // https://github.com/NorthernMan54/Hap-Node-Client/blob/master/docs/API.md#properties
         const hapClientOptions = {
@@ -113,12 +116,11 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
         // to start discovery of new accessories.
         this.api.on('didFinishLaunching', async () => {
             log.debug('Executed didFinishLaunching callback');
-
         });
     }
 
-    async handleMqttMessage(topic: string, payload: ArrayBuffer): Promise<void> {
-        const payloadString = this.decoder.decode(payload);
+    async handleMqttMessage(topic: string, payload: Buffer): Promise<void> {
+        const payloadString = payload.toString();
         const thingId = topic.split('/')[2];
         this.log.debug(`Received MQTT message for thing: ${thingId}. Payload: ${payloadString}`);
         const json = JSON.parse(payloadString);
@@ -166,9 +168,13 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
                         characteristicsForEvents.push(...this.getCharacteristicsForEvents(accessory));
                         const topic = `$aws/things/${thing.id}/shadow/update/delta`;
                         this.log.debug(`Subscribing to topic: ${topic}`);
-                        await this.mqttClient.subscribe(topic,
-                            QoS.AtMostOnce, this.handleMqttMessage.bind(this));
-                        this.log.debug(`Finished subscribing to topic: ${topic}`);
+                        await this.mqttClient.subscribe(topic, (err) => {
+                            if (err) {
+                                this.log.error('Failed to subscribe to MQTT message. Incoming IoT messages will not work!', err);
+                            } else {
+                                this.log.debug(`Finished subscribing to topic: ${topic}`);
+                            }
+                        });
                         count++;
                     }
                 }
