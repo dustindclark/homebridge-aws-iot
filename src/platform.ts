@@ -17,12 +17,12 @@ import EventEmitter from 'events';
 import {Accessory} from 'hap-nodejs';
 import {IClientOptions, MqttClient} from 'mqtt/types/lib/client';
 import * as mqtt from 'mqtt';
-import characteristicUtil_1 from "../dist/util/characteristicUtil";
 
 type DeviceFilter = {
     readonly name: string;
     readonly displayCategory: string;
-}
+};
+
 type PluginConfig = {
     readonly pin: string;
     readonly debug: boolean;
@@ -64,9 +64,10 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
         this.thingMap = new Map();
         this.co = config as PluginConfig;
         this.deviceFilterList = this.co.deviceFilterList.reduce((map, it) => {
-                map.set(it.name.toLowerCase(), it.displayCategory);
-                return map;
-            }, new Map());;
+            map.set(it.name.toLowerCase(), it.displayCategory);
+            return map;
+        }, new Map());
+
         this.iotClient = new IoTClient({
             region: this.co.awsRegion,
             credentials: {
