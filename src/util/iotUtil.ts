@@ -116,7 +116,7 @@ export const createOrUpdateThings = async (platform: AwsIotHomebridgePlatform, b
         const id = getThingId(platform, bridge.deviceID, accessory.aid);
 
         const s = service as DiscoveredService;
-        const type = getDeviceType(s);
+        const type = platform.deviceFilterList.get(name.toLowerCase()) ?? getDeviceType(s);
         if (!uniqueTypes.has(type)) {
             await createThingType(platform, type);
             uniqueTypes.add(type);

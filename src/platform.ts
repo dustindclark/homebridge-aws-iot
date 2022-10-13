@@ -17,7 +17,12 @@ import EventEmitter from 'events';
 import {Accessory} from 'hap-nodejs';
 import {IClientOptions, MqttClient} from 'mqtt/types/lib/client';
 import * as mqtt from 'mqtt';
+import characteristicUtil_1 from "../dist/util/characteristicUtil";
 
+type DeviceFilter = {
+    readonly name: string;
+    readonly displayCategory: string;
+}
 type PluginConfig = {
     readonly pin: string;
     readonly debug: boolean;
@@ -26,7 +31,7 @@ type PluginConfig = {
     readonly awsIamSecret: string;
     readonly iotIdentifier: string;
     readonly iotEndpoint: string;
-    readonly deviceFilterList: ReadonlyArray<string>;
+    readonly deviceFilterList: ReadonlyArray<DeviceFilter>;
 } & PlatformConfig;
 
 /**
@@ -46,7 +51,7 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
     private readonly hapClient: HAPNodeJSClient;
     private readonly thingMap: Map<string, Thing>;
     public readonly mqttClient: MqttClient;
-    public readonly deviceFilterList: Set<string>;
+    public readonly deviceFilterList: Map<string, string>;
 
     constructor(
         public readonly log: Logger,
@@ -58,7 +63,10 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
         this.eventBus = new EventEmitter();
         this.thingMap = new Map();
         this.co = config as PluginConfig;
-        this.deviceFilterList = new Set(this.co.deviceFilterList.map(it => it.toLowerCase()));
+        this.deviceFilterList = this.co.deviceFilterList.reduce((map, it) => {
+                map.set(it.name.toLowerCase(), it.displayCategory);
+                return map;
+            }, new Map());;
         this.iotClient = new IoTClient({
             region: this.co.awsRegion,
             credentials: {
