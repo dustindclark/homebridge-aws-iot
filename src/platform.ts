@@ -106,6 +106,10 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
             this.log.debug('MQTT connected successfully.');
         });
 
+        this.mqttClient.on('error', (error) => {
+            this.log.error('Caught error on MQTT connection');
+        });
+
         this.mqttClient.on('message', this.handleMqttMessage.bind(this));
 
         // https://github.com/NorthernMan54/Hap-Node-Client/blob/master/docs/API.md#properties
