@@ -109,6 +109,15 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
         this.mqttClient.on('error', (error) => {
             this.log.error('Caught error on MQTT connection', error);
         });
+        this.mqttClient.on('close', (error) => {
+            this.log.error('Caught close on MQTT connection', error);
+        });
+        this.mqttClient.on('disconnect', (error) => {
+            this.log.error('Caught disconnect on MQTT connection', error);
+        });
+        this.mqttClient.on('end', (error) => {
+            this.log.error('Caught disconnect on MQTT connection', error);
+        });
 
         this.mqttClient.on('message', this.handleMqttMessage.bind(this));
 
