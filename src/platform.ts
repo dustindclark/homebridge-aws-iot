@@ -82,13 +82,8 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
                 secretAccessKey: this.co.awsIamSecret,
             },
         });
-        const urlSignatureOptions = {
-            host: this.co.iotEndpoint,
-            region: this.co.awsRegion,
-            username: this.co.awsIamAccessKey,
-            password: this.co.awsIamSecret,
-        };
-        const presignedURL = prepareWebSocketUrl(urlSignatureOptions);
+
+        const presignedURL = prepareWebSocketUrl(this.getUrlSignatureOptions());
         const mqttOptions: IClientOptions = {
             keepalive: 30,
             reconnectPeriod: 1000,
@@ -97,7 +92,7 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
             connectTimeout: 5000,
             transformWsUrl: () => {
                 this.log.info('Refreshing URL signature.');
-                return prepareWebSocketUrl(urlSignatureOptions);
+                return prepareWebSocketUrl(this.getUrlSignatureOptions());
             },
         };
 
@@ -143,6 +138,15 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
         this.api.on('didFinishLaunching', async () => {
             log.debug('Executed didFinishLaunching callback');
         });
+    }
+
+    getUrlSignatureOptions() {
+        return {
+            host: this.co.iotEndpoint,
+            region: this.co.awsRegion,
+            username: this.co.awsIamAccessKey,
+            password: this.co.awsIamSecret,
+        };
     }
 
     async handleMqttMessage(topic: string, payload: Buffer): Promise<void> {
