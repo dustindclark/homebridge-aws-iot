@@ -16,7 +16,7 @@ import {UpdateThingShadowCommand} from "@aws-sdk/client-iot-data-plane";
 
 export const createThingGroup = async (platform: AwsIotHomebridgePlatform, groupName: string): Promise<void> => {
     try {
-        const thingGroupResponse = await platform.iotClient.send(new CreateThingGroupCommand({
+        const thingGroupResponse = await platform.iotClient?.send(new CreateThingGroupCommand({
             thingGroupName: groupName
         }));
     } catch (error) {
@@ -28,7 +28,7 @@ export const createThingGroup = async (platform: AwsIotHomebridgePlatform, group
 
 export const createThingType = async (platform: AwsIotHomebridgePlatform, type: string): Promise<void> => {
     try {
-        await platform.iotClient.send(new CreateThingTypeCommand({
+        await platform.iotClient?.send(new CreateThingTypeCommand({
             thingTypeName: type
         }));
     } catch (error) {
@@ -78,15 +78,15 @@ const createThing = async (platform: AwsIotHomebridgePlatform, id: string, name:
         }
     });
     try {
-        const response = await platform.iotClient.send(cmd);
-        platform.log.debug(`Created thing. ARN: ${response.thingArn}`);
+        const response = await platform.iotClient?.send(cmd);
+        platform.log.debug(`Created thing. ARN: ${response?.thingArn}`);
     } catch (error: any) {
         if (error.name === "ResourceAlreadyExistsException") {
             platform.log.debug(`Thing ${id} already exists. Updating`);
             const updateCmd = new UpdateThingCommand({
                 ...cmd.input
             });
-            await platform.iotClient.send(updateCmd);
+            await platform.iotClient?.send(updateCmd);
             platform.log.debug(`Thing ${id} updated successfully.`)
         } else {
             platform.log.error(`Caught error creating thing.`, error);
@@ -174,7 +174,7 @@ export const updateThingShadow = async (platform: AwsIotHomebridgePlatform, thin
         thingName: thingId,
         payload: Buffer.from(JSON.stringify(payload))
     });
-    await platform.iotDataplaneClient.send(updateShadowCommand);
+    await platform.iotDataplaneClient?.send(updateShadowCommand);
 }
 
 export const addThingToGroup = async (platform: AwsIotHomebridgePlatform, thingId: string, groupName: string): Promise<void> => {
@@ -183,7 +183,7 @@ export const addThingToGroup = async (platform: AwsIotHomebridgePlatform, thingI
             thingName: thingId,
             thingGroupName: groupName
         });
-        await platform.iotClient.send(addCmd);
+        await platform.iotClient?.send(addCmd);
     } catch (error) {
         platform.log.error(`Failed to add thing to group`, error);
     }

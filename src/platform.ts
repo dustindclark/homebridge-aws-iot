@@ -45,12 +45,12 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
     }
 
     public readonly co: PluginConfig;
-    public readonly iotClient: IoTClient;
-    public readonly iotDataplaneClient: IoTDataPlaneClient;
+    public readonly iotClient: IoTClient | null;
+    public readonly iotDataplaneClient: IoTDataPlaneClient | null;
     public readonly eventBus: EventEmitter;
     private readonly hapClient: HAPNodeJSClient;
     private readonly thingMap: Map<string, Thing>;
-    public readonly mqttClient: MqttClient;
+    public readonly mqttClient: MqttClient | null;
     public readonly deviceFilterList: Map<string, string>;
 
     constructor(
@@ -63,81 +63,86 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
         this.eventBus = new EventEmitter();
         this.thingMap = new Map();
         this.co = config as PluginConfig;
-        this.deviceFilterList = this.co.deviceFilterList.reduce((map, it) => {
-            map.set(it.name.toLowerCase(), it.displayCategory);
-            return map;
-        }, new Map());
-
-        this.iotClient = new IoTClient({
-            region: this.co.awsRegion,
-            credentials: {
-                accessKeyId: this.co.awsIamAccessKey,
-                secretAccessKey: this.co.awsIamSecret,
-            },
-        });
-        this.iotDataplaneClient = new IoTDataPlaneClient({
-            region: this.co.awsRegion,
-            credentials: {
-                accessKeyId: this.co.awsIamAccessKey,
-                secretAccessKey: this.co.awsIamSecret,
-            },
-        });
-
-        const presignedURL = prepareWebSocketUrl(this.getUrlSignatureOptions());
-        const mqttOptions: IClientOptions = {
-            keepalive: 30,
-            reconnectPeriod: 1000,
-            clientId: `homebridge-${this.co.iotIdentifier}`,
-            clean: true,
-            connectTimeout: 5000,
-            transformWsUrl: () => {
-                this.log.info('Refreshing URL signature.');
-                return prepareWebSocketUrl(this.getUrlSignatureOptions());
-            },
-        };
-
-        this.mqttClient = mqtt.connect(presignedURL, mqttOptions);
-        this.mqttClient.on('connect', () => {
-            this.log.debug('MQTT connected successfully.');
-        });
-
-        this.mqttClient.on('error', (error) => {
-            this.log.error('Caught error on MQTT connection', error);
-        });
-        this.mqttClient.on('close', (error) => {
-            this.log.error('Caught close on MQTT connection', error);
-        });
-        this.mqttClient.on('disconnect', (error) => {
-            this.log.error('Caught disconnect on MQTT connection', error);
-        });
-        this.mqttClient.on('end', (error) => {
-            this.log.error('Caught end on MQTT connection', error);
-        });
-
-        this.mqttClient.on('message', this.handleMqttMessage.bind(this));
-
-        // https://github.com/NorthernMan54/Hap-Node-Client/blob/master/docs/API.md#properties
-        const hapClientOptions = {
-            debug: this.co.debug,
-            pin: this.co.pin,
-            eventBus: this.eventBus,
-            refresh: 1440, //1 day
-        };
         try {
+            this.deviceFilterList = this.co.deviceFilterList ? this.co.deviceFilterList.reduce((map, it) => {
+                map.set(it.name.toLowerCase(), it.displayCategory);
+                return map;
+            }, new Map()) : new Map();
+
+            this.iotClient = new IoTClient({
+                region: this.co.awsRegion,
+                credentials: {
+                    accessKeyId: this.co.awsIamAccessKey,
+                    secretAccessKey: this.co.awsIamSecret,
+                },
+            });
+            this.iotDataplaneClient = new IoTDataPlaneClient({
+                region: this.co.awsRegion,
+                credentials: {
+                    accessKeyId: this.co.awsIamAccessKey,
+                    secretAccessKey: this.co.awsIamSecret,
+                },
+            });
+
+            const presignedURL = prepareWebSocketUrl(this.getUrlSignatureOptions());
+            const mqttOptions: IClientOptions = {
+                keepalive: 30,
+                reconnectPeriod: 1000,
+                clientId: `homebridge-${this.co.iotIdentifier}`,
+                clean: true,
+                connectTimeout: 5000,
+                transformWsUrl: () => {
+                    this.log.info('Refreshing URL signature.');
+                    return prepareWebSocketUrl(this.getUrlSignatureOptions());
+                },
+            };
+
+            this.mqttClient = mqtt.connect(presignedURL, mqttOptions);
+            this.mqttClient.on('connect', () => {
+                this.log.debug('MQTT connected successfully.');
+            });
+
+            this.mqttClient.on('error', (error) => {
+                this.log.error('Caught error on MQTT connection', error);
+            });
+            this.mqttClient.on('close', (error) => {
+                this.log.error('Caught close on MQTT connection', error);
+            });
+            this.mqttClient.on('disconnect', (error) => {
+                this.log.error('Caught disconnect on MQTT connection', error);
+            });
+            this.mqttClient.on('end', (error) => {
+                this.log.error('Caught end on MQTT connection', error);
+            });
+
+            this.mqttClient.on('message', this.handleMqttMessage.bind(this));
+
+            // https://github.com/NorthernMan54/Hap-Node-Client/blob/master/docs/API.md#properties
+            const hapClientOptions = {
+                debug: this.co.debug,
+                pin: this.co.pin,
+                eventBus: this.eventBus,
+                refresh: 1440, //1 day
+            };
             this.hapClient = new HAPNodeJSClient(hapClientOptions);
             this.hapClient.on('Ready', this.handleHomebridgeDiscovery.bind(this));
             this.hapClient.on('hapEvent', this.hapEvent.bind(this));
-        } catch (error) {
-            log.error('Caught error initializing hap client', error);
-        }
 
-        // When this event is fired it means Homebridge has restored all cached accessories from disk.
-        // Dynamic Platform plugins should only register new accessories after this event was fired,
-        // in order to ensure they weren't added to homebridge already. This event can also be used
-        // to start discovery of new accessories.
-        this.api.on('didFinishLaunching', async () => {
-            log.debug('Executed didFinishLaunching callback');
-        });
+
+            // When this event is fired it means Homebridge has restored all cached accessories from disk.
+            // Dynamic Platform plugins should only register new accessories after this event was fired,
+            // in order to ensure they weren't added to homebridge already. This event can also be used
+            // to start discovery of new accessories.
+            this.api.on('didFinishLaunching', async () => {
+                log.debug('Executed didFinishLaunching callback');
+            });
+        } catch (error) {
+            log.error('Caught error launching. AWS IOT plugin could not be initialized.', error);
+            this.deviceFilterList = new Map();
+            this.iotClient = null;
+            this.iotDataplaneClient = null;
+            this.mqttClient = null;
+        }
     }
 
     getUrlSignatureOptions() {
@@ -181,6 +186,10 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
 
     async handleHomebridgeDiscovery(homebridges: ReadonlyArray<any>) {
         try {
+            if (this.mqttClient === null) {
+                this.log.info('MQTT client is null. Skipping discovery');
+                return;
+            }
             this.thingMap.clear();
             this.log.debug(`Discovered ${homebridges.length} homebridges. Sending to IoT...`);
             let count = 0;

@@ -21,6 +21,9 @@ function signUrl(method, scheme, hostname, path, queryParams, accessId, secretKe
 
     const signedHeaders = 'host';
 
+    if (!hostname) {
+        throw new Error("Hostname is required");
+    }
     var canonicalHeaders = 'host:' + hostname.toLowerCase() + '\n';
 
     var canonicalRequest = method + '\n' + // method
