@@ -8,6 +8,9 @@
 
 # Homebridge AWS IoT Plugin
 
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+[![NPM Version](https://img.shields.io/npm/v/homebridge-aws-iot.svg)](https://www.npmjs.com/package/homebridge-aws-iot)
+
 > &#x26a0;&#xfe0f; **Unstable Plugin**: This plugin is a work in progress.
 
 This plugin syncs Homebridge accessories with AWS IoT. It publishes the

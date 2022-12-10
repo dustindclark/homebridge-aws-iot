@@ -61,5 +61,10 @@
       "hap-nodejs": "0.10.4",
       "bonjour-hap": "^3.6.4"
     }
+  },
+  "homepage": "https://github.com/dustindclark/homebridge-aws-iot#readme",
+  "funding": {
+    "type": "paypal",
+    "url": "https://paypal.me/dustindclark"
   }
 }
