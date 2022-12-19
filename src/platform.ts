@@ -88,7 +88,7 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
             this.log.info(`Presigned URL is ${presignedURL}`);
             const mqttOptions: IClientOptions = {
                 keepalive: 30,
-                reconnectPeriod: 1000,
+                reconnectPeriod: 20000,
                 clientId: `homebridge-${this.co.iotIdentifier}`,
                 clean: true,
                 connectTimeout: 5000,
