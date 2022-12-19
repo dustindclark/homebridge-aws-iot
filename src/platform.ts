@@ -85,6 +85,7 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
             });
 
             const presignedURL = prepareWebSocketUrl(this.getUrlSignatureOptions());
+            this.log.info(`Presigned URL is ${presignedURL}`);
             const mqttOptions: IClientOptions = {
                 keepalive: 30,
                 reconnectPeriod: 1000,
@@ -92,8 +93,9 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
                 clean: true,
                 connectTimeout: 5000,
                 transformWsUrl: () => {
-                    this.log.info('Refreshing URL signature.');
-                    return prepareWebSocketUrl(this.getUrlSignatureOptions());
+                    const url = prepareWebSocketUrl(this.getUrlSignatureOptions())
+                    this.log.info(`Refreshed URL signature: ${url}`);
+                    return url;
                 },
             };
 
