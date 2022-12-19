@@ -93,7 +93,7 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
                 clean: true,
                 connectTimeout: 5000,
                 transformWsUrl: () => {
-                    const url = prepareWebSocketUrl(this.getUrlSignatureOptions())
+                    const url = prepareWebSocketUrl(this.getUrlSignatureOptions());
                     this.log.info(`Refreshed URL signature: ${url}`);
                     return url;
                 },
