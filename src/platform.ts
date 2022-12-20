@@ -192,6 +192,18 @@ export class AwsIotHomebridgePlatform implements DynamicPlatformPlugin {
                 this.log.info('MQTT client is null. Skipping discovery');
                 return;
             }
+            for(const key of this.thingMap.keys()) {
+                const topic = `$aws/things/${key}/shadow/update/delta`;
+                this.log.debug(`Unsubscribing to topic: ${topic}`);
+                await this.mqttClient.unsubscribe(topic, (err) => {
+                    if (err) {
+                        this.log.error('Failed to unsubscribe to MQTT message. Incoming IoT messages will not work!', err);
+                    } else {
+                        this.log.debug(`Finished unsubscribing to topic: ${topic}`);
+                    }
+                });
+            }
+
             this.thingMap.clear();
             this.log.debug(`Discovered ${homebridges.length} homebridges. Sending to IoT...`);
             let count = 0;
